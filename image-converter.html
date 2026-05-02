@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片格式转换工具</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .drop-zone { transition: all 0.3s ease; }
+  .drop-zone.drag-over { background-color: #eff6ff; border-color: #3b82f6; transform: scale(1.02); }
+  .fade-in { animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  input[type="range"] { -webkit-appearance: none; height: 6px; border-radius: 3px; background: #e5e7eb; outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">图片格式转换工具</h1>
+      <p class="text-gray-500">支持 PNG / JPG / WebP 输出，可批量转换、调整质量</p>
+    </header>
+
+    <!-- Upload Zone -->
+    <div id="dropZone" class="drop-zone bg-white border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors mb-6">
+      <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+      </svg>
+      <p class="text-gray-600 font-medium mb-1">拖拽图片到此处，或点击选择文件</p>
+      <p class="text-gray-400 text-sm">支持 PNG、JPG、JPEG、GIF、BMP、WebP、SVG、ICO</p>
+      <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+    </div>
+
+    <!-- Batch List -->
+    <div id="fileList" class="hidden mb-6 space-y-2"></div>
+
+    <!-- Settings -->
+    <div id="settings" class="hidden fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">转换设置</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">输出格式</label>
+          <select id="outputFormat" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+            <option value="image/png">PNG（无损，文件较大）</option>
+            <option value="image/jpeg">JPEG（有损压缩，适合照片）</option>
+            <option value="image/webp">WebP（兼顾质量与体积）</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">输出尺寸</label>
+          <select id="resizeMode" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+            <option value="original">保持原始尺寸</option>
+            <option value="50">缩放至 50%</option>
+            <option value="75">缩放至 75%</option>
+            <option value="200">放大至 200%</option>
+            <option value="custom">自定义尺寸</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="customSizeRow" class="hidden grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">宽度 (px)</label>
+          <input type="number" id="customWidth" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="宽度" min="1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">高度 (px)</label>
+          <input type="number" id="customHeight" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="高度" min="1">
+        </div>
+      </div>
+
+      <div id="qualityRow" class="mb-4">
+        <div class="flex justify-between items-center mb-1.5">
+          <label class="text-sm font-medium text-gray-700">质量</label>
+          <span id="qualityValue" class="text-sm text-primary-600 font-semibold">90%</span>
+        </div>
+        <input type="range" id="quality" min="10" max="100" value="90" step="5" class="w-full">
+        <div class="flex justify-between text-xs text-gray-400 mt-1">
+          <span>体积小</span><span>质量高</span>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="convertBtn" class="flex-1 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors shadow-sm">
+          开始转换
+        </button>
+        <button id="clearBtn" class="px-4 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors text-sm">
+          清空重选
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="hidden fade-in space-y-4"></div>
+    <div id="batchDownloadArea" class="hidden fade-in mt-4 text-center">
+      <button id="downloadAllBtn" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium py-2.5 px-6 rounded-lg transition-colors shadow-sm inline-flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+        </svg>
+        下载全部
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      files: [],
+      results: []
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+
+    const dropZone = $('#dropZone');
+    const fileInput = $('#fileInput');
+    const fileList = $('#fileList');
+    const settings = $('#settings');
+    const resultsEl = $('#results');
+    const batchDownloadArea = $('#batchDownloadArea');
+    const convertBtn = $('#convertBtn');
+    const clearBtn = $('#clearBtn');
+    const downloadAllBtn = $('#downloadAllBtn');
+    const outputFormat = $('#outputFormat');
+    const qualityEl = $('#quality');
+    const qualityValue = $('#qualityValue');
+    const resizeMode = $('#resizeMode');
+    const customSizeRow = $('#customSizeRow');
+
+    // Drag & Drop
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+    function handleFiles(fileList) {
+      const imageFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+      if (imageFiles.length === 0) {
+        alert('请选择图片文件');
+        return;
+      }
+      state.files = imageFiles;
+      state.results = [];
+      renderFileList();
+    }
+
+    function renderFileList() {
+      fileList.innerHTML = state.files.map((f, i) => {
+        const sizeStr = f.size > 1024 * 1024 ? (f.size / 1024 / 1024).toFixed(2) + ' MB' : (f.size / 1024).toFixed(1) + ' KB';
+        return `
+          <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3 fade-in">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xs text-gray-500 font-semibold flex-shrink-0">
+                ${f.type.split('/')[1]?.toUpperCase() || 'IMG'}
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-800 truncate">${f.name}</p>
+                <p class="text-xs text-gray-500">${sizeStr}</p>
+              </div>
+            </div>
+            <button onclick="removeFile(${i})" class="text-gray-400 hover:text-red-500 p-1.5 transition-colors flex-shrink-0 ml-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>`;
+      }).join('');
+
+      fileList.classList.remove('hidden');
+      settings.classList.remove('hidden');
+      resultsEl.classList.add('hidden');
+      batchDownloadArea.classList.add('hidden');
+      convertBtn.disabled = false;
+      updateFileCount();
+    }
+
+    function removeFile(index) {
+      state.files.splice(index, 1);
+      if (state.files.length === 0) {
+        fileList.classList.add('hidden');
+        settings.classList.add('hidden');
+        resultsEl.classList.add('hidden');
+        batchDownloadArea.classList.add('hidden');
+        fileInput.value = '';
+      } else {
+        renderFileList();
+      }
+    }
+
+    function updateFileCount() {
+      const count = state.files.length;
+      convertBtn.textContent = count > 1 ? `开始转换（${count} 个文件）` : '开始转换';
+    }
+
+    clearBtn.addEventListener('click', () => {
+      state.files = [];
+      state.results = [];
+      fileInput.value = '';
+      fileList.classList.add('hidden');
+      settings.classList.add('hidden');
+      resultsEl.classList.add('hidden');
+      batchDownloadArea.classList.add('hidden');
+      resultsEl.innerHTML = '';
+    });
+
+    // Quality slider
+    qualityEl.addEventListener('input', () => {
+      qualityValue.textContent = qualityEl.value + '%';
+    });
+
+    // Output format changes
+    outputFormat.addEventListener('change', () => {
+      const format = outputFormat.value;
+      const qualityRow = $('#qualityRow');
+      if (format === 'image/png') {
+        qualityRow.classList.add('hidden');
+      } else {
+        qualityRow.classList.remove('hidden');
+      }
+    });
+
+    // Resize mode changes
+    resizeMode.addEventListener('change', () => {
+      if (resizeMode.value === 'custom') {
+        customSizeRow.classList.remove('hidden');
+      } else {
+        customSizeRow.classList.add('hidden');
+      }
+    });
+
+    // Convert
+    convertBtn.addEventListener('click', async () => {
+      if (state.files.length === 0) return;
+      convertBtn.disabled = true;
+      convertBtn.textContent = '转换中...';
+      convertBtn.classList.add('pulse');
+      state.results = [];
+
+      resultsEl.innerHTML = '';
+      resultsEl.classList.remove('hidden');
+      batchDownloadArea.classList.add('hidden');
+
+      for (let i = 0; i < state.files.length; i++) {
+        const file = state.files[i];
+        const itemEl = document.createElement('div');
+        itemEl.className = 'bg-white rounded-xl shadow-sm border border-gray-200 p-5 fade-in';
+        itemEl.innerHTML = `<div class="flex items-center gap-3"><div class="animate-spin rounded-full h-5 w-5 border-2 border-primary-500 border-t-transparent"></div><span class="text-sm text-gray-600">正在转换 ${file.name}...</span></div>`;
+        resultsEl.appendChild(itemEl);
+
+        try {
+          const result = await convertImage(file);
+          state.results.push(result);
+
+          const ext = outputFormat.value.split('/')[1] === 'jpeg' ? 'jpg' : outputFormat.value.split('/')[1];
+          const outName = file.name.substring(0, file.name.lastIndexOf('.')) + '_converted.' + ext;
+          const outSizeStr = result.blob.size > 1024 * 1024 ? (result.blob.size / 1024 / 1024).toFixed(2) + ' MB' : (result.blob.size / 1024).toFixed(1) + ' KB';
+          const reduction = file.size > 0 ? ((1 - result.blob.size / file.size) * 100).toFixed(0) : 0;
+          const reductionColor = reduction > 0 ? 'text-green-600' : (reduction < 0 ? 'text-red-500' : 'text-gray-400');
+          const reductionText = reduction > 0 ? `减小 ${reduction}%` : (reduction < 0 ? `增大 ${Math.abs(reduction)}%` : '大小不变');
+
+          itemEl.innerHTML = `
+            <div class="flex flex-col sm:flex-row gap-4">
+              <div class="flex-shrink-0 w-full sm:w-28 h-28 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                <img src="${result.dataUrl}" alt="" class="max-w-full max-h-full object-contain">
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-800 truncate mb-1">${outName}</p>
+                <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 mb-3">
+                  <span>原始: ${(file.size / 1024).toFixed(1)} KB</span>
+                  <span>转换后: ${outSizeStr}</span>
+                  <span class="${reductionColor} font-medium">${reductionText}</span>
+                  <span>${result.width} × ${result.height}</span>
+                </div>
+                <button onclick="downloadResult(${i})" class="inline-flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                  下载
+                </button>
+              </div>
+            </div>`;
+        } catch (err) {
+          itemEl.innerHTML = `<div class="flex items-center gap-2 text-red-500"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg><span class="text-sm">转换 ${file.name} 失败: ${err.message}</span></div>`;
+        }
+      }
+
+      convertBtn.disabled = false;
+      updateFileCount();
+      convertBtn.classList.remove('pulse');
+
+      if (state.results.length > 1) {
+        batchDownloadArea.classList.remove('hidden');
+      }
+    });
+
+    async function convertImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+
+            const mode = resizeMode.value;
+            const customW = parseInt($('#customWidth').value);
+            const customH = parseInt($('#customHeight').value);
+
+            if (mode === 'custom' && customW > 0 && customH > 0) {
+              w = customW; h = customH;
+            } else if (mode !== 'original') {
+              const scale = parseInt(mode) / 100;
+              w = Math.round(img.naturalWidth * scale);
+              h = Math.round(img.naturalHeight * scale);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const mimeType = outputFormat.value;
+            const quality = mimeType === 'image/png' ? undefined : parseInt(qualityEl.value) / 100;
+
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error('转换失败，浏览器可能不支持此格式'));
+                return;
+              }
+              resolve({
+                blob,
+                dataUrl: URL.createObjectURL(blob),
+                width: w,
+                height: h
+              });
+            }, mimeType, quality);
+          };
+          img.onerror = () => reject(new Error('无法加载图片'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('无法读取文件'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function downloadResult(index) {
+      const result = state.results[index];
+      const file = state.files[index];
+      const ext = outputFormat.value.split('/')[1] === 'jpeg' ? 'jpg' : outputFormat.value.split('/')[1];
+      const name = file.name.substring(0, file.name.lastIndexOf('.')) + '_converted.' + ext;
+      downloadBlob(result.blob, name);
+    }
+
+    downloadAllBtn.addEventListener('click', () => {
+      state.results.forEach((result, i) => {
+        const file = state.files[i];
+        const ext = outputFormat.value.split('/')[1] === 'jpeg' ? 'jpg' : outputFormat.value.split('/')[1];
+        const name = file.name.substring(0, file.name.lastIndexOf('.')) + '_converted.' + ext;
+        setTimeout(() => downloadBlob(result.blob, name), i * 300);
+      });
+    });
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
