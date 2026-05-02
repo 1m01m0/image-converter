@@ -1,57 +1,59 @@
-# 图片格式转换工具
+# AI Skills — 格式转换工具集
 
-一个纯浏览器端的图片格式转换工具，支持 PNG / JPEG / WebP 互转。另提供 AI 编码助手 Skill，可在 Claude Code / OpenCode / Codex 中安装使用。
+适用于 Claude Code / Claude Cowork / OpenCode / Codex 的格式转换 Skill 集合。
 
-## 浏览器版
+## Skills 列表
 
-直接在浏览器中打开 `image-converter.html` 即可使用，无需安装任何依赖。
+### 1. 图片格式转换 (`image-converter`)
 
-**功能：**
-- 拖拽或点击上传图片
-- 输出格式：PNG、JPEG、WebP
-- 批量转换
-- 可调节输出质量（JPEG / WebP）
-- 按比例缩放或自定义尺寸
-- 转换后预览对比，显示体积变化
+PNG / JPEG / WebP 互转，支持质量调节、缩放、批量处理。
 
-## AI Skill 版
-
-### 安装
-
-**Claude Code / Claude Cowork：**
+**安装：**
 ```bash
-# 方式一：直接安装 .skill 文件
 claude skills install ./image-converter.skill
-
-# 方式二：从 GitHub 安装
+# 或
 claude skills install https://github.com/1m01m0/image-converter/blob/main/image-converter.skill
 ```
 
-**OpenCode / Codex（手动安装）：**
+**使用：** `/image-converter` — 把这张图转成 JPEG 质量 80% / 把文件夹里的 PNG 批量转 WebP
+
+**另附：** `image-converter.html` 浏览器版独立工具，双击打开即用。
+
+### 2. 文档格式转换 (`document-converter`)
+
+DOCX / PPTX / XLSX ↔ PDF 互转。Office → PDF 用 LibreOffice，PDF → Office 用 Python 库。
+
+**安装：**
 ```bash
-# 解压 .skill 文件到 skills 目录
-unzip image-converter.skill -d ~/.opencode/skills/image-converter/
+claude skills install ./document-converter.skill
 # 或
-unzip image-converter.skill -d ~/.codex/skills/image-converter/
+claude skills install https://github.com/1m01m0/image-converter/blob/main/document-converter.skill
 ```
 
-### 使用
+**使用：** `/document-converter` — 把这个 Word 导出成 PDF / 把这个 PDF 转成可编辑的 DOCX
 
-安装后，在对话中输入 `/image-converter`，然后描述需求：
+**转换方向：**
 
+| 方向 | 引擎 | 质量 |
+|------|------|------|
+| DOCX/PPTX/XLSX → PDF | LibreOffice | 优秀 |
+| PDF → DOCX | pdf2docx | 中等，需手动检查 |
+| PDF → XLSX（表格） | pdfplumber | 中等 |
+| PDF → PPTX | fitz 提取文本 | 低，仅提取文字 |
+
+## 手动安装（OpenCode / Codex）
+
+```bash
+unzip image-converter.skill -d ~/.opencode/skills/image-converter/
+unzip document-converter.skill -d ~/.opencode/skills/document-converter/
 ```
-/ 把这张图转成 JPEG，质量调到 80%
-/ 把这个文件夹里的 PNG 批量转成 WebP
-/ 把 screenshot.png 缩放到 50% 再转成 JPEG
-```
-
-Skill 会自动使用 Python Pillow 完成转换，处理透明度、输出对比信息。
 
 ## 文件说明
 
 | 文件 | 用途 |
 |------|------|
-| `image-converter.html` | 浏览器版独立工具，双击打开即用 |
-| `image-converter.skill` | AI Skill 安装包（zip 格式） |
-| `skill/SKILL.md` | Skill 定义文件（可单独查看） |
-| `skill/image-converter.html` | Skill 附带的浏览器工具 |
+| `image-converter.skill` | 图片转换 Skill 安装包 |
+| `image-converter.html` | 图片转换浏览器版工具 |
+| `document-converter.skill` | 文档转换 Skill 安装包 |
+| `skill/SKILL.md` | 图片转换 Skill 定义 |
+| `skill-docs/SKILL.md` | 文档转换 Skill 定义 |
