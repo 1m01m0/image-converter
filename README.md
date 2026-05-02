@@ -12,7 +12,7 @@ PNG / JPEG / WebP 互转，支持质量调节、缩放、批量处理。
 ```bash
 claude skills install ./image-converter.skill
 # 或
-claude skills install https://github.com/1m01m0/image-converter/blob/main/image-converter.skill
+claude skills install https://github.com/1m01m0/format-converter/blob/main/image-converter.skill
 ```
 
 **使用：** `/image-converter` — 把这张图转成 JPEG 质量 80% / 把文件夹里的 PNG 批量转 WebP
@@ -27,7 +27,7 @@ DOCX / PPTX / XLSX ↔ PDF 互转。Office → PDF 用 LibreOffice，PDF → Off
 ```bash
 claude skills install ./document-converter.skill
 # 或
-claude skills install https://github.com/1m01m0/image-converter/blob/main/document-converter.skill
+claude skills install https://github.com/1m01m0/format-converter/blob/main/document-converter.skill
 ```
 
 **使用：** `/document-converter` — 把这个 Word 导出成 PDF / 把这个 PDF 转成可编辑的 DOCX
